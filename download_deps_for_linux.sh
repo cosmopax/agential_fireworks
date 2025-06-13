@@ -24,6 +24,7 @@ langchain-community
 langchain-experimental
 chromadb
 sentence-transformers
+pypdf
 REQ_EOF
 
 echo "Created requirements file:"

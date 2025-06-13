@@ -8,7 +8,7 @@ Agential Firework is a project aimed at creating a powerful, private, and extens
 
 A brief overview of the important directories:
 
--   `agential_framework_env_alt/`: Contains the Python RAG agent (`rag_agent.py`) and its virtual environment (created by setup scripts).
+-   `agential_framework_env_alt/`: Contains the Python RAG agent (`rag_agent.py`), its configuration (`rag_config.ini`), and its virtual environment (created by setup scripts).
 -   `llama_cpp_bin/`: Stores compiled binaries for `llama.cpp` (`llama_main`, `llama_server`). Created by setup scripts.
 -   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
 -   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
@@ -55,15 +55,38 @@ The Ubuntu setup enables GPU acceleration for significantly faster performance, 
     *   Creates a Python virtual environment in `agential_framework_env_alt/venv/` and installs packages, including PyTorch with CUDA support.
 4.  **Post-Setup**: You might need to log out and log back in or `source ~/.bashrc` for CUDA path changes to take full effect.
 
+## Configuration (`rag_config.ini`)
+
+The `rag_agent.py` script uses a configuration file named `rag_config.ini` located in the same directory (`agential_framework_env_alt/`). If this file is not found when the script is run, a default one will be created. You should review and edit this file to suit your setup.
+
+The settings are:
+
+-   `[Paths]`
+    -   `DOCUMENTS_PATH`: Absolute path to the folder containing your local documents (supports `.txt`, `.md`, and `.pdf` files) for the RAG agent. Example: `/path/to/your/documents` or `C:\Users\YourName\Documents\ResearchPapers`.
+    -   `CHROMA_DB_PATH`: Path to the Chroma vector database. If relative (e.g., `./chroma_db_local_docs`), it's relative to the `rag_agent.py` script itself.
+-   `[Models]`
+    -   `EMBEDDING_MODEL`: The name of the HuggingFace sentence transformer model to use for embeddings (e.g., `all-MiniLM-L6-v2`).
+    -   `LLAMA_SERVER_API_BASE`: The base URL for the `llama.cpp` server's OpenAI-compatible API (e.g., `http://127.0.0.1:8080/v1`).
+    -   `EMBEDDINGS_DEVICE`: Specifies the device for calculating embeddings. Options:
+        -   `auto`: (Default) Attempts to use `cuda` if available (PyTorch detects a CUDA GPU), otherwise falls back to `cpu`.
+        -   `cuda`: Forces the use of CUDA. If not available, it will fall back to `cpu` with a warning.
+        -   `cpu`: Forces the use of CPU for embeddings.
+-   `[Conversation]`
+    -   `HISTORY_K`: The number of past user/AI interaction pairs to keep in conversation memory (e.g., `3` means the last 3 questions and their answers will be remembered).
+
+**Important**:
+- After the default `rag_config.ini` is created, you **must** update `DOCUMENTS_PATH` to point to the actual location of your documents. The script will not work correctly until this path is valid.
+- For faster document processing and query embedding on Ubuntu systems with a compatible NVIDIA GPU, ensure PyTorch with CUDA is installed (handled by `setup_ubuntu.sh`) and set `EMBEDDINGS_DEVICE = auto` or `EMBEDDINGS_DEVICE = cuda` in `rag_config.ini`.
+
 ## Using the RAG Agent (`rag_agent.py`)
 
-The RAG agent allows you to chat with your local documents.
+The RAG agent allows you to chat with your local documents, with answers derived from your content and including source document citations.
 
-1.  **Place Documents**: Put your `.txt` or `.md` documents into a folder.
-2.  **Configure `rag_agent.py`**:
-    *   Open `agential_framework_env_alt/rag_agent.py`.
-    *   **Crucially, update the `DOCUMENTS_PATH` variable** to the absolute path of your documents folder.
-    *   (Optional) Adjust `CHROMA_DB_PATH`, `EMBEDDING_MODEL`, `LLAMA_SERVER_API_BASE` if needed.
+1.  **Place Documents**: Put your `.txt`, `.md`, or `.pdf` documents into a folder.
+2.  **Configure `rag_config.ini`**:
+    *   Locate the `rag_config.ini` file in the `agential_framework_env_alt/` directory. (If it wasn't there, running `rag_agent.py` once will create a default version).
+    *   Open `rag_config.ini` and **crucially, update the `DOCUMENTS_PATH` setting** under the `[Paths]` section to the absolute path of your documents folder.
+    *   Adjust other settings like `CHROMA_DB_PATH`, `EMBEDDING_MODEL`, `LLAMA_SERVER_API_BASE`, `EMBEDDINGS_DEVICE`, and `HISTORY_K` as needed. Refer to the "Configuration (`rag_config.ini`)" section above for details on each setting.
 3.  **Start `llama_server`**:
     *   Navigate to `llama_cpp_bin/`.
     *   Run the server:
@@ -78,8 +101,9 @@ The RAG agent allows you to chat with your local documents.
     *   Run the script: `python rag_agent.py`
     *   To force re-indexing of documents: `python rag_agent.py --reindex`
     *   Type your questions and press Enter. Type `exit` or `quit` to end.
-    *   **Conversation History**: The agent now remembers the last 3 interactions (user queries and AI responses) to provide more contextually relevant answers.
+    *   **Conversation History**: The agent now remembers the number of interactions defined by `HISTORY_K` in `rag_config.ini` (user queries and AI responses) to provide more contextually relevant answers.
     *   **Reset History**: To clear the conversation history and start a fresh topic, type `/reset` as your question.
+    *   **Source Citations**: The agent will now attempt to cite the source document(s) from which it derives its answers. The context provided to the LLM includes filenames, and the LLM is prompted to use them.
 
 ## Using `text-generation-webui` (Ubuntu with GPU)
 

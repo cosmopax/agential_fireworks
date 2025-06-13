@@ -1,0 +1,18 @@
+# Ignore model files and large directories
+models/
+llama_cpp_bin/
+llama.cpp/
+text-generation-webui-source/
+text-generation-webui-data/
+
+# Ignore Python virtual environments
+agential_framework_env_alt/
+venv/
+*.venv/
+
+# Ignore logs and local DBs
+*.log
+chroma_db_local_docs/
+
+# macOS specific
+.DS_Store

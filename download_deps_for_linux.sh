@@ -26,6 +26,7 @@ chromadb
 sentence-transformers
 pypdf
 tavily-python
+duckduckgo-search
 REQ_EOF
 
 echo "Created requirements file:"

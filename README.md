@@ -1,0 +1,115 @@
+# Agential Firework
+
+## Overview
+
+Agential Firework is a project aimed at creating a powerful, private, and extensible AI development environment. It facilitates the setup and use of local Large Language Models (LLMs) and Retrieval Augmented Generation (RAG) agents. This project provides scripts to set up the environment on both macOS (CPU-only) and Ubuntu (with NVIDIA GPU support).
+
+## Directory Structure
+
+A brief overview of the important directories:
+
+-   `agential_framework_env_alt/`: Contains the Python RAG agent (`rag_agent.py`) and its virtual environment (created by setup scripts).
+-   `llama_cpp_bin/`: Stores compiled binaries for `llama.cpp` (`llama_main`, `llama_server`). Created by setup scripts.
+-   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
+-   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
+-   `text_generation_webui_install/`: (On Ubuntu) Contains the installation for `text-generation-webui` if installed using the provided script.
+
+## Setup Instructions
+
+Choose the setup script appropriate for your operating system.
+
+### macOS (CPU-Only Setup)
+
+The macOS setup provides a CPU-based environment. Model inference will be slower than on a GPU-accelerated machine.
+
+1.  **Prerequisites**: Ensure you have an internet connection.
+2.  **Run the script**:
+    *   Open your terminal.
+    *   Navigate to the root of this repository.
+    *   Make the script executable: `chmod +x setup_macos.sh`
+    *   Run the script: `./setup_macos.sh`
+3.  **Script Actions**:
+    *   Installs Homebrew (if not present) and necessary tools (`cmake`, `python`, `git`).
+    *   Clones this project repository to `/Users/cosmopax/Desktop/agential_firework` (adjust `PROJECT_DIR` in the script if needed).
+    *   Clones and compiles `llama.cpp` (CPU version). Binaries (`llama_main`, `llama_server`) are placed in `llama_cpp_bin/`.
+    *   Creates a Python virtual environment in `agential_framework_env_alt/venv/` and installs required packages.
+
+### Ubuntu (NVIDIA GPU Setup)
+
+The Ubuntu setup enables GPU acceleration for significantly faster performance, assuming you have compatible NVIDIA hardware and drivers.
+
+1.  **Prerequisites**:
+    *   An NVIDIA GPU.
+    *   An internet connection.
+    *   It's recommended to have NVIDIA drivers already installed. The script can attempt to install them, but a manual setup via "Additional Drivers" or NVIDIA's website is often more robust.
+2.  **Run the script**:
+    *   Open your terminal.
+    *   Navigate to the root of this repository.
+    *   Make the script executable: `chmod +x setup_ubuntu.sh`
+    *   Run the script with sudo: `sudo ./setup_ubuntu.sh` (sudo is needed for `apt-get` and CUDA installation).
+3.  **Script Actions**:
+    *   Installs essential packages (`git`, `python3`, `python3-venv`, `cmake`, `build-essential`).
+    *   Attempts to install NVIDIA CUDA Toolkit (version 11.8 specified in script).
+    *   Clones this project repository to `/home/<your_user>/agential_firework` (adjust `PROJECT_DIR` in script if needed).
+    *   Clones and compiles `llama.cpp` with CUDA support (e.g., for RTX 3090 Ti). Binaries (`llama_main_cuda`, `llama_server_cuda`) are placed in `llama_cpp_bin/`.
+    *   Creates a Python virtual environment in `agential_framework_env_alt/venv/` and installs packages, including PyTorch with CUDA support.
+4.  **Post-Setup**: You might need to log out and log back in or `source ~/.bashrc` for CUDA path changes to take full effect.
+
+## Using the RAG Agent (`rag_agent.py`)
+
+The RAG agent allows you to chat with your local documents.
+
+1.  **Place Documents**: Put your `.txt` or `.md` documents into a folder.
+2.  **Configure `rag_agent.py`**:
+    *   Open `agential_framework_env_alt/rag_agent.py`.
+    *   **Crucially, update the `DOCUMENTS_PATH` variable** to the absolute path of your documents folder.
+    *   (Optional) Adjust `CHROMA_DB_PATH`, `EMBEDDING_MODEL`, `LLAMA_SERVER_API_BASE` if needed.
+3.  **Start `llama_server`**:
+    *   Navigate to `llama_cpp_bin/`.
+    *   Run the server:
+        *   macOS: `./llama_server -m <path_to_your_model.gguf> -c <context_size>`
+        *   Ubuntu: `./llama_server_cuda -m <path_to_your_model.gguf> -c <context_size> -ngl <number_of_gpu_layers>` (e.g., `-ngl 35` for a 7B model)
+    *   Replace `<path_to_your_model.gguf>` with the actual path to your GGUF model file (e.g., `../models/your_model.gguf`).
+4.  **Run the RAG Agent**:
+    *   Open a new terminal.
+    *   Navigate to the project root.
+    *   Activate the Python environment: `source agential_framework_env_alt/venv/bin/activate`
+    *   Navigate to the agent's directory: `cd agential_framework_env_alt`
+    *   Run the script: `python rag_agent.py`
+    *   To force re-indexing of documents: `python rag_agent.py --reindex`
+    *   Type your questions and press Enter. Type `exit` or `quit` to end.
+    *   **Conversation History**: The agent now remembers the last 3 interactions (user queries and AI responses) to provide more contextually relevant answers.
+    *   **Reset History**: To clear the conversation history and start a fresh topic, type `/reset` as your question.
+
+## Using `text-generation-webui` (Ubuntu with GPU)
+
+`text-generation-webui` provides a graphical interface for interacting with various LLMs.
+
+1.  **Prerequisites**:
+    *   `setup_ubuntu.sh` should have been run successfully, especially the CUDA setup.
+2.  **Run the setup script**:
+    *   Navigate to the root of this repository.
+    *   Make the script executable: `chmod +x setup_text_generation_webui.sh`
+    *   Run the script: `./setup_text_generation_webui.sh` (This script installs Miniconda and the web UI in user space, typically under `~/text_generation_webui_install`).
+3.  **Start the Web UI**:
+    *   Open a new terminal or `source ~/.bashrc` to ensure Conda is initialized.
+    *   Activate the Conda environment: `conda activate textgen` (or the name you used if modified in the script).
+    *   Navigate to the web UI directory (e.g., `cd ~/text_generation_webui_install/text-generation-webui`).
+    *   Start the server: `python server.py --listen --model-dir <path_to_your_models_directory>`
+        *   Replace `<path_to_your_models_directory>` with the path to your GGUF models (e.g., `../../models` if your project is `~/agential_firework` and models are in `~/agential_firework/models`).
+4.  **Access**: Open your web browser to `http://0.0.0.0:7860` (or the address shown in the terminal).
+5.  **Model Selection**:
+    *   Go to the "Model" tab in the UI.
+    *   Use the dropdown to select your model.
+    *   Ensure the correct "loader" (e.g., `llama.cpp` for GGUF models) is chosen.
+    *   Click "Load".
+
+## Other Scripts
+
+-   **`download_deps_for_linux.sh`**:
+    *   Run on macOS or another machine with internet to download Linux Python packages for offline transfer to your Ubuntu machine.
+    *   Creates an `offline_pip_cache_for_linux` directory.
+    *   See script comments for usage on the Ubuntu side.
+
+---
+This README will be updated as new features are added to the Agential Firework project.

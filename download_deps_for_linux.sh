@@ -25,6 +25,7 @@ langchain-experimental
 chromadb
 sentence-transformers
 pypdf
+tavily-python
 REQ_EOF
 
 echo "Created requirements file:"

@@ -13,7 +13,7 @@ A brief overview of the important directories:
     -   Configuration files (e.g., `rag_config.ini` for the RAG agent, `tool_agent_config.ini` for the Tool-agent).
     -   The `tools/` subdirectory for pluggable tools.
     -   The Python virtual environment (`venv/`) created by the setup scripts.
--   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
+-   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`, `write_file_tool.py`, `make_directory_tool.py`, `web_search_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
 -   `llama_cpp_bin/`: Stores compiled binaries for `llama.cpp` (`llama_main`, `llama_server`). Created by setup scripts.
 -   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
 -   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
@@ -53,7 +53,7 @@ The settings are:
 - For faster document processing and query embedding on Ubuntu systems with a compatible NVIDIA GPU, ensure PyTorch with CUDA is installed (handled by `setup_ubuntu.sh`) and set `EMBEDDINGS_DEVICE = auto` or `EMBEDDINGS_DEVICE = cuda` in `rag_config.ini`.
 
 ## Using the RAG Agent (`rag_agent.py`)
-(Content remains the same, but ensure references to LLAMA_SERVER_API_BASE and HISTORY_K are consistent with rag_config.ini if they were previously implies as shared)
+(Content remains the same)
 
 ## Using `text-generation-webui` (Ubuntu with GPU)
 (Content remains the same)
@@ -87,8 +87,10 @@ Key settings include:
 -   `[Conversation]`
     -   `TOOL_AGENT_HISTORY_K`: Number of past interaction pairs for conversation memory.
 -   `[Tools]`
-    -   `PROJECT_SANDBOX_DIR`: Defines the intended root directory for safe OS operations by tools. Path can be relative to `tool_agent.py` (e.g., `..` for the project root) or absolute. **Note**: Currently, `ListDirectoryTool` and `ReadFileTool` internally define their sandbox relative to their own file location (effectively the project root). Future updates will make them fully utilize this config setting.
+    -   `PROJECT_SANDBOX_DIR`: Defines the root directory for safe OS operations by tools like `ListDirectoryTool`, `ReadFileTool`, `WriteFileTool`, and `MakeDirectoryTool`. The path specified here (which can be relative to `tool_agent.py` like `..` for the project root, or an absolute path) is resolved to an absolute path by the agent. All OS tools are confined to operate only within this directory and its subdirectories. User-provided paths for these tools must be relative to this sandbox.
     -   `MAX_FILE_READ_CHARS`: Maximum number of characters `ReadFileTool` will read from a file (e.g., `2000`).
+-   `[APIs]`
+    -   `TAVILY_API_KEY`: Your API key for Tavily AI (for the `WebSearchTool`). You can obtain a key from [https://tavily.com](https://tavily.com). If left as the default placeholder (`YOUR_API_KEY_HERE_OR_LEAVE_EMPTY`) or empty, the WebSearchTool will not be functional.
 
 ### Available Tools
 
@@ -97,27 +99,16 @@ Tools are located as individual Python files in the `agential_framework_env_alt/
 Currently implemented tools:
 -   **`CalculatorTool`**: Evaluates basic arithmetic expressions (e.g., "2 + 3 * 4", "100 / 5").
 -   **`GetCurrentDateTool`**: Returns the current date and time.
--   **`ListDirectoryTool`**: Lists contents (files and subdirectories) of a directory. Expects a path relative to the project root (e.g., '.', 'agential_framework_env_alt/tools'). It's sandboxed to prevent listing outside the project area based on its own file location.
--   **`ReadFileTool`**: Reads the initial content of a specified text file. Expects a path relative to the project root. Sandboxed to the project area (based on its own file location) and reads up to `MAX_FILE_READ_CHARS` (configurable in `tool_agent_config.ini`).
+-   **`ListDirectoryTool`**: Lists contents (files and subdirectories) of a specified directory. Path must be relative to the configured `PROJECT_SANDBOX_DIR`.
+-   **`ReadFileTool`**: Reads the initial content of a specified text file. Path must be relative to the `PROJECT_SANDBOX_DIR`. Reads up to `MAX_FILE_READ_CHARS`.
+-   **`WriteFileTool`**: Writes or overwrites a text file with specified content. Input format: `'[relative_file_path]|[content_to_write]'`. Path must be relative to `PROJECT_SANDBOX_DIR`. This tool cannot create new directories; the target directory must already exist. **Use with extreme caution as it can overwrite files.**
+-   **`MakeDirectoryTool`**: Creates a new directory (including any necessary parent directories if they are within the sandbox). Path must be relative to `PROJECT_SANDBOX_DIR`. Succeeds without error if the directory already exists.
+-   **`WebSearchTool`**: Performs a web search using the Tavily AI service to find up-to-date information. Expects a search query string as input. Requires a Tavily API key to be configured in `tool_agent_config.ini`.
 
 The agent will list all successfully loaded tools upon startup.
 
 ### Running the Agent
-
-1.  **Start `llama_server`**: Ensure your `llama.cpp` server is running (same as for the RAG agent). Provide a model that is good at following instructions and structured output.
-    *   Example (Ubuntu with GPU, from project root): `cd llama_cpp_bin && ./llama_server_cuda -m ../models/your_model.gguf -c 2048 -ngl 35`
-    *   (Adjust context size `-c` and GPU layers `-ngl` as needed).
-2.  **Run `tool_agent.py`**:
-    *   Open a new terminal.
-    *   Navigate to the project root: `cd /path/to/your/agential_firework`
-    *   Activate the Python environment: `source agential_framework_env_alt/venv/bin/activate`
-    *   Navigate to the agent's directory: `cd agential_framework_env_alt`
-    *   Run the script: `python tool_agent.py`
-3.  **Interact**:
-    *   The agent will initialize and list available tools.
-    *   Type your query and press Enter.
-    *   To clear conversation history, type `/reset`.
-    *   To exit, type `exit` or `quit`.
+(Content remains the same)
 
 ### Extending with New Tools
 
@@ -128,7 +119,7 @@ You can add new tools by:
 4.  Implement the `execute(self, params: str) -> str` method. This method takes a single string `params` (which your tool will need to parse if necessary) and must return a string result.
 The `tool_agent.py` will automatically discover and attempt to load any such tools when it starts.
 
-For tools performing file system operations, they currently define a sandbox root relative to their own location. Future enhancements aim to have them utilize the `PROJECT_SANDBOX_DIR` from `tool_agent_config.ini` for more centralized control. If your tool requires specific configuration values (like `ReadFileTool` using `MAX_FILE_READ_CHARS`), the `tool_agent.py`'s `load_tools()` function needs to be aware of your tool to pass these parameters during its instantiation.
+For tools performing file system operations, they should be designed to accept a `project_sandbox_dir` argument in their `__init__` method. The `tool_agent.py`'s `load_tools()` function must then be updated to pass the resolved sandbox directory to your new tool during its instantiation. This ensures all OS tools consistently respect the centrally configured sandbox. If your tool requires other specific configuration values (like `ReadFileTool` using `MAX_FILE_READ_CHARS` or `WebSearchTool` using `TAVILY_API_KEY`), the `tool_agent.py`'s `load_tools()` function needs to be aware of your tool to pass these parameters during its instantiation.
 
 ## Other Scripts
 (Content remains the same)

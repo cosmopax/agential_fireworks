@@ -28,6 +28,7 @@ pypdf
 tavily-python
 duckduckgo-search
 psutil
+pytest
 REQ_EOF
 
 echo "Created requirements file:"

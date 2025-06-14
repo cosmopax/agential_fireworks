@@ -150,7 +150,7 @@ pip install --upgrade pip
 print_info "Installing PyTorch with CUDA ${CUDA_VERSION_MAJOR_MINOR} support..."
 pip install torch torchvision torchaudio --index-url "https://download.pytorch.org/whl/cu$(echo $CUDA_VERSION_MAJOR_MINOR | tr -d '.')"
 print_info "Installing other Python dependencies..."
-pip install requests langchain langchain-community langchain-experimental chromadb sentence-transformers pypdf tavily-python duckduckgo-search psutil
+pip install requests langchain langchain-community langchain-experimental chromadb sentence-transformers pypdf tavily-python duckduckgo-search psutil pytest
 deactivate
 print_success "Python virtual environment for Agential Framework is ready."
 

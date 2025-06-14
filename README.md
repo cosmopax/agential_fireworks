@@ -14,7 +14,7 @@ A brief overview of the important directories:
     -   The `core_logic/` subdirectory for shared agent functionalities (e.g., `rag_core.py`).
     -   The `tools/` subdirectory for pluggable tools.
     -   The Python virtual environment (`venv/`) created by the setup scripts.
--   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`, `write_file_tool.py`, `make_directory_tool.py`, `save_content_tool.py`, `web_search_tool.py`, `query_local_docs_tool.py`, `help_tool.py`, `python_interpreter_tool.py`, `get_process_list_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
+-   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`, `write_file_tool.py`, `make_directory_tool.py`, `save_content_tool.py`, `web_search_tool.py`, `query_local_docs_tool.py`, `help_tool.py`, `python_interpreter_tool.py`, `get_process_list_tool.py`, `file_search_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
 -   `llama_cpp_bin/`: Stores compiled binaries for `llama.cpp` (`llama_main`, `llama_server`). Created by setup scripts.
 -   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
 -   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
@@ -35,19 +35,6 @@ Choose the setup script appropriate for your operating system. The setup scripts
 The `rag_agent.py` script uses its dedicated configuration file named `rag_config.ini`, located in the `agential_framework_env_alt/` directory. If this file is not found when the `rag_agent.py` script is run, a default one will be created. You should review and edit this file to suit your RAG agent setup.
 
 The settings are:
-
--   `[Paths]`
-    -   `DOCUMENTS_PATH`: Absolute path to the folder containing your local documents (supports `.txt`, `.md`, and `.pdf` files) for the RAG agent.
-    -   `CHROMA_DB_PATH`: Path to the Chroma vector database, relative to `rag_agent.py` if not absolute.
--   `[Models]`
-    -   `EMBEDDING_MODEL`: HuggingFace model for embeddings (e.g., `all-MiniLM-L6-v2`).
-    -   `LLAMA_SERVER_API_BASE`: URL for the `llama.cpp` server.
-    -   `EMBEDDINGS_DEVICE`: Device for embeddings (`auto`, `cuda`, `cpu`).
-    -   `RAG_RETRIEVER_K`: (Optional) The number of relevant document chunks the RAG system (used by `QueryLocalDocsTool` and now also by `rag_agent.py` for its core retrieval) should retrieve. Defaults to `3`.
--   `[Conversation]`
-    -   `HISTORY_K`: Number of past interactions for RAG agent's conversation memory.
-
-**Important**:
 (Content remains the same)
 
 ## Using the RAG Agent (`rag_agent.py`)
@@ -73,7 +60,10 @@ The Tool-Using Agent (`tool_agent.py`) is an experimental agent capable of utili
 (Content remains the same)
 
 #### Sequential Tool Execution (Chaining)
-(Content remains the same)
+The agent can execute a sequence of up to two tools to fulfill more complex requests. The LLM can plan this sequence. For instance, it might decide to first use one tool (e.g., `WebSearchTool`) and then use its output as input for a second tool (e.g., `SaveContentTool`). When planning a two-step sequence, the LLM can use the placeholder `{{PREVIOUS_TOOL_OUTPUT}}` in the parameters for the second tool, which the agent will replace with the actual output from the first tool. The `{{PREVIOUS_TOOL_OUTPUT}}` placeholder is replaced with the literal string output of the first tool. If this output is multi-line or contains special characters, the LLM should be mindful of this when constructing the parameters for the second tool to ensure correct parsing by that tool.
+
+#### Tool Output Handling (JSON Awareness)
+The agent is designed to recognize when a tool's output is structured data. For instance, if `PythonInterpreterTool` executes code that prints a valid JSON string, the agent identifies this. This type information ("json" or "text") is then provided to the LLM during the final response synthesis step, allowing the LLM to make more informed use of the tool's output (e.g., by referring to specific keys in a JSON object). For sequential tool execution, the raw string output (which would be the JSON string itself if applicable) is passed via the `{{PREVIOUS_TOOL_OUTPUT}}` placeholder.
 
 ### Configuration (`tool_agent_config.ini`)
 (Content remains the same)
@@ -84,7 +74,13 @@ The Tool-Using Agent (`tool_agent.py`) is an experimental agent capable of utili
 
 Currently implemented tools:
 -   **`CalculatorTool`**: Evaluates basic arithmetic expressions.
+-   **`FileSearchTool`**: Searches for a specific text pattern (case-insensitive) within a given text file in the project's sandboxed directory.
+    -   **Input Format**: `'[relative_file_path]|[search_pattern]'` (e.g., `'src/utils.py|def process_data'`).
+    -   **Functionality**: Returns lines containing the pattern, along with their line numbers.
+    -   **Limits**: The number of returned matches (default 10) and the length of each reported line (default 200 characters) are limited for brevity.
+    -   **Path Requirements**: The file path must be relative to the `PROJECT_SANDBOX_DIR` configured in `tool_agent_config.ini`.
 -   **`GetCurrentDateTool`**: Returns the current date and time.
+-   **`GetProcessListTool`**: Lists currently running processes on the system, showing details like PID, name, username, CPU%, and Memory%. It takes no input parameters. The output is a sample of processes (up to a default limit of 25) and may be truncated. Requires the `psutil` library (installed by setup scripts).
 -   **`HelpTool`**: Provides information about available tools.
     -   Input: Can be a specific tool name (e.g., "CalculatorTool") to get detailed help for that tool.
     -   Input: If left empty or if "all" or "list" is provided, it lists all available tools and their brief descriptions.
@@ -100,7 +96,6 @@ Currently implemented tools:
 -   **`ReadFileTool`**: Reads content of a file relative to `PROJECT_SANDBOX_DIR`, up to `MAX_FILE_READ_CHARS`.
 -   **`SaveContentTool`**: Saves text content to a file relative to `PROJECT_SANDBOX_DIR`. (Specialized `WriteFileTool`).
 -   **`WriteFileTool`**: Writes/overwrites a file relative to `PROJECT_SANDBOX_DIR`. Cannot create directories. **Use with extreme caution.**
--   **`GetProcessListTool`**: Lists currently running processes on the system, showing details like PID, name, username, CPU%, and Memory%. It takes no input parameters. The output is a sample of processes (up to a default limit of 25) and may be truncated. Requires the `psutil` library (installed by setup scripts).
 -   **`WebSearchTool (DuckDuckGo)`**: Performs a web search via DuckDuckGo. Requires internet.
 -   **`WebSearchTool (Tavily)`**: Alternative web search via Tavily (needs API key). Requires internet.
 
@@ -114,11 +109,7 @@ The agent will list all successfully loaded tools upon startup.
 (Content remains the same)
 
 ## Other Scripts
-
--   **`download_deps_for_linux.sh`**:
-    *   Run on macOS or another machine with internet to download Linux Python packages for offline transfer to your Ubuntu machine. The script has been updated to include new dependencies like `duckduckgo-search` and `psutil`.
-    *   Creates an `offline_pip_cache_for_linux` directory.
-    *   See script comments for usage on the Ubuntu side.
+(Content remains the same)
 
 ---
 This README will be updated as new features are added to the Agential Firework project.

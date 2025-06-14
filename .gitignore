@@ -6,7 +6,6 @@ text-generation-webui-source/
 text-generation-webui-data/
 
 # Ignore Python virtual environments
-agential_framework_env_alt/
 venv/
 *.venv/
 

@@ -1,120 +1,68 @@
-## Project Overview: Agential Firework
+# PROJECT_DIRECTIVE.md: Agential Firework
 
-Agential Firework is a project dedicated to establishing a robust, private, and extensible development environment for Artificial Intelligence. The core aim is to simplify the setup and utilization of local Large Language Models (LLMs) and advanced Retrieval Augmented Generation (RAG) agents. This initiative provides comprehensive setup scripts tailored for both macOS (CPU-only) and Ubuntu (with NVIDIA GPU support) environments, facilitating a broad adoption for AI development and experimentation.
+### A. Mission & Core Objective
+- **Mission:** To establish a robust, private, and extensible development environment for Artificial Intelligence, simplifying the setup and utilization of local Large Language Models (LLMs) and advanced Retrieval Augmented Generation (RAG) agents.
+- **Current Success Criteria:** A functional local AI development environment with setup scripts for both macOS and Ubuntu. Core capabilities include a RAG agent for querying local documents and a Tool Agent with a suite of foundational tools, both interacting with a locally hosted LLM via `llama.server`.
+- **Future Success Criteria:** An enhanced, more robust framework with improved tool integration, simplified configuration management, comprehensive user documentation, and a full suite of automated tests.
 
-## Directory Structure
+### B. Project Layout & Current State
+- **`agential_framework_env_alt/`**: Core Python agent framework.
+    - Agents: `rag_agent.py`, `tool_agent.py`
+    - Configs: `rag_config.ini`, `tool_agent_config.ini`
+    - Shared Logic: `core_logic/`
+    - Tools: `tools/`
+    - Environment: `venv/`
+- **`llama.cpp/`**: Source code for the `llama.cpp` library.
+- **`llama_cpp_bin/`**: Compiled `llama.cpp` binaries (`llama_main`, `llama_server`).
+- **`models/`**: Directory for GGUF model files.
+- **`text_generation_webui_install/`**: (Ubuntu) Optional installation of `text-generation-webui`.
 
-The project is organized into several key directories:
+### C. Technical & Resource Stack
+- **Languages & Core Technologies:** Python 3, Shell Scripting (Bash/Zsh).
+- **Core Libraries & Frameworks:** `llama.cpp` for LLM inference.
+- **Python Dependencies:** `psutil`, `duckduckgo-search`, `tavily-python`, and others as specified in setup scripts.
+- **Key Components:**
+    - `llama_server` as the LLM backend API.
+    - `RAGSystem` in `core_logic` for document retrieval.
+    - Modular `BaseTool` structure for `tool_agent.py`.
+- **Target Platforms:** macOS (CPU-only, Zsh/Homebrew), Ubuntu (NVIDIA GPU recommended, APT).
 
--   `agential_framework_env_alt/`: The core of the Python-based agent framework. It houses agent scripts (e.g., `rag_agent.py`, `tool_agent.py`), configuration files (e.g., `rag_config.ini`, `tool_agent_config.ini`), the `core_logic/` subdirectory for shared functionalities, the `tools/` subdirectory for pluggable tools, and the Python virtual environment (`venv/`).
--   `llama.cpp/`: Contains the source code for the `llama.cpp` library, used for running LLMs locally.
--   `llama_cpp_bin/`: Stores the compiled binaries for `llama.cpp` (e.g., `llama_main`, `llama_server`), created by the setup scripts.
--   `models/`: Designated directory for storing GGUF model files. This directory needs to be created manually or by adapted setup scripts.
--   `text_generation_webui_install/`: (Ubuntu specific) Contains the installation for the `text-generation-webui` if installed via the provided script.
--   `docs/`: (If it exists or is planned) Intended for user documentation, guides, and detailed explanations of components.
--   `scripts/` or `setup_scripts/`: (If setup scripts are consolidated) Would contain all setup-related shell scripts (`setup_macos.sh`, `setup_ubuntu.sh`, `download_deps_for_linux.sh`).
+### D. Task Decomposition
+#### Completed Milestones
+- [x] **Setup Automation:** Develop setup scripts (`setup_macos.sh`, `setup_ubuntu.sh`) for dependencies and compilation.
+- [x] **LLM Integration:** Integrate `llama.cpp` and establish the `llama_server` workflow.
+- [x] **RAG Agent Development:** Create the initial `rag_agent.py` with `rag_config.ini` and core logic.
+- [x] **Tool Agent Framework:** Develop the initial `tool_agent.py` capable of loading and using tools.
+- [x] **Initial Tool Suite:** Implement a foundational set of tools (Filesystem, Web Search, System, etc.).
 
-## Agential Framework
+#### Next Steps & Future Roadmap
+- [ ] **Phase 1: Refinement & Hardening**
+    - [ ] **Tool Enhancement:** Harden the experimental `PythonInterpreterTool` with more robust sandboxing and clear limitations.
+    - [ ] **Error Handling:** Improve global error handling within both the RAG and Tool agents to be more descriptive and resilient.
+    - [ ] **Configuration Management:** Develop a script or a TUI (Text-based User Interface) tool to guide users through editing the `.ini` configuration files, reducing manual errors.
+- [ ] **Phase 2: Testing & Validation**
+    - [ ] **Unit Tests:** Develop a suite of `pytest` unit tests for each tool in the `tools/` directory.
+    - [ ] **Integration Tests:** Create integration tests that verify the full loop of agent-to-tool and agent-to-LLM communication.
+    - [ ] **CI/CD Pipeline:** Set up a basic GitHub Actions workflow to automatically run tests on push/pull request.
+- [ ] **Phase 3: Documentation**
+    - [ ] **User Guide:** Create a comprehensive `USER_GUIDE.md` in a new `docs/` directory, explaining setup, configuration, and agent execution for non-developers.
+    - [ ] **Developer Guide:** Create a `DEVELOPER_GUIDE.md` explaining how to create and integrate new tools into the framework.
+    - [ ] **API Documentation:** Add detailed docstrings to all Python functions and classes.
+- [ ] **Phase 4: Feature Expansion**
+    - [ ] **Conversational Tool Use:** Enhance the Tool Agent to allow for more natural, conversational interaction instead of single-shot commands.
+    - [ ] **New High-Value Tools:** Design and implement more complex tools (e.g., a tool for Git operations, a database interaction tool).
+    - [ ] **Alternative LLM Backends:** Refactor the LLM communication logic to allow for easy integration of other backends besides `llama_server` (e.g., Ollama, OpenAI API).
 
-The heart of Agential Firework is its Python-based agential framework, located within the `agential_framework_env_alt/` directory. This framework is designed for modularity and extensibility, supporting sophisticated AI agent development.
+### E. Constraints & Preferences
+- **Privacy First & Local Execution:** The primary mode of operation must always be with locally hosted models. Any tool requiring internet access (e.g., WebSearch) must be explicitly enabled by the user.
+- **Extensible by Design:** The architecture must remain modular to facilitate easy addition of new tools and capabilities.
+- **Sandboxed File Operations:** All tools that interact with the filesystem (`ReadFileTool`, `WriteFileTool`, etc.) MUST be strictly limited to the `PROJECT_SANDBOX_DIR` defined in the configuration.
+- **Cautious Tool Use:** Tools marked as "Experimental" or with a high potential for system impact (`PythonInterpreterTool`, `WriteFileTool`) must log prominent warnings upon use.
 
-Key components include:
-
--   **RAG Agent (`rag_agent.py`):** Enables conversational interaction with a local document corpus.
-    -   Utilizes `rag_config.ini` for configuration (document paths, embedding models, etc.).
-    -   Leverages the `RAGSystem` from `core_logic/` for core document retrieval and generation, ensuring consistency across the project.
-    -   Manages conversation history and user interaction.
-
--   **Tool Agent (`tool_agent.py`):** An experimental agent capable of using a suite of tools to perform tasks and answer questions beyond the LLM's intrinsic knowledge.
-    -   Configured via `tool_agent_config.ini` (LLM settings, tool enablement, API keys).
-    -   Features include error handling for tools and sequential tool execution (chaining).
-
--   **Core Logic (`core_logic/`):** Contains shared Python modules and functionalities, such as `rag_core.py`, which centralizes the RAG operations for both the RAG agent and the `QueryLocalDocsTool`.
-
--   **Tools (`tools/`):** A collection of pluggable Python modules, each representing a distinct capability that the Tool Agent can leverage. Each tool typically inherits from a `BaseTool` class.
-
--   **Configuration Files:**
-    -   `rag_config.ini`: Specific to the RAG Agent, defining paths for documents and the vector database, embedding model details, and conversation parameters.
-    -   `tool_agent_config.ini`: For the Tool Agent, specifying LLM server details, API keys for certain tools (e.g., Tavily Web Search), and sandbox directory settings.
-
--   **Python Virtual Environment (`venv/`):** An isolated Python environment created by the setup scripts to manage project-specific dependencies.
-
-## Available Tools for Tool Agent
-
-The Tool Agent (`tool_agent.py`) can utilize a variety of tools to extend its capabilities. These tools are located in the `agential_framework_env_alt/tools/` directory. Some tools may require specific dependencies (installed by setup scripts) or network access.
-
--   **`CalculatorTool`**: Evaluates basic arithmetic expressions.
--   **`GetCurrentDateTool`**: Returns the current date and time.
--   **`HelpTool`**: Provides information about available tools. Can list all tools or give detailed help for a specific tool.
--   **`ListDirectoryTool`**: Lists contents of a specified directory relative to a defined project sandbox directory (`PROJECT_SANDBOX_DIR`).
--   **`MakeDirectoryTool`**: Creates a new directory relative to `PROJECT_SANDBOX_DIR`.
--   **`PythonInterpreterTool`**: (Experimental & Restricted) Executes simple Python code snippets in a highly restricted environment. Limited library access (e.g., `math`, `random`). **Use with caution.**
--   **`QueryLocalDocsTool`**: Queries the local document database built by the RAG Agent, utilizing the shared `RAGSystem` from `core_logic/`. Requires the RAG database to be populated first.
--   **`ReadFileTool`**: Reads the content of a specified file relative to `PROJECT_SANDBOX_DIR`, with a maximum character limit.
--   **`SaveContentTool`**: Saves provided text content to a specified file relative to `PROJECT_SANDBOX_DIR`. (A specialized version of `WriteFileTool`).
--   **`WriteFileTool`**: Writes or overwrites content to a specified file relative to `PROJECT_SANDBOX_DIR`. Does not create directories. **Use with extreme caution.**
--   **`GetProcessListTool`**: Lists currently running processes on the system, showing details like PID, name, CPU%, and Memory%. Requires the `psutil` library.
--   **`WebSearchTool (DuckDuckGo)`**: Performs web searches using DuckDuckGo. Requires an internet connection and the `duckduckgo-search` library.
--   **`WebSearchTool (Tavily)`**: An alternative web search tool using the Tavily API. Requires an internet connection and a Tavily API key configured in `tool_agent_config.ini`.
-
-The Tool Agent lists all successfully loaded tools upon startup.
-
-## Local LLM Integration
-
-A core feature of Agential Firework is its ability to run Large Language Models (LLMs) locally, ensuring privacy and control over AI capabilities.
-
--   **`llama.cpp`**: The project utilizes the `llama.cpp` library for efficient LLM inference.
-    -   The source code for `llama.cpp` is included in the `llama.cpp/` directory and is typically cloned during the setup process.
-    -   Compiled binaries (e.g., `llama_main` for direct interaction, `llama_server` for providing an API endpoint) are placed in the `llama_cpp_bin/` directory by the setup scripts.
-    -   The `llama_server` is crucial for the RAG and Tool agents, which communicate with the LLM via its API (default: `http://127.0.0.1:8080/completion`).
-
--   **Models (`models/` directory):**
-    -   This directory is the designated location for storing LLM model files, typically in the GGUF (GPT-Generated Unified Format).
-    -   Users need to procure and place their desired GGUF-compatible models in this directory. The setup scripts may create this directory if it doesn't exist, but model acquisition is manual.
-
--   **`text-generation-webui` (Optional, Ubuntu with GPU):**
-    -   For users on Ubuntu with NVIDIA GPUs, the project provides an option to install `text-generation-webui` (located in `text_generation_webui_install/`).
-    -   This offers a comprehensive web interface for interacting with various LLMs, managing models, and experimenting with different generation parameters. It can serve as an alternative or complementary way to interact with local LLMs alongside the project's agents.
-
-## Setup and Execution
-
-The project provides scripts to streamline the setup process on supported operating systems.
-
--   **Setup:**
-    -   **macOS (CPU-Only):** Run `setup_macos.sh` to install dependencies, clone `llama.cpp`, build it, and set up the Python virtual environment.
-    -   **Ubuntu (NVIDIA GPU Recommended):** Run `setup_ubuntu.sh` for a similar setup, with added support for NVIDIA GPU acceleration for `llama.cpp` and an option to install `text-generation-webui`.
-    -   **Offline Dependencies:** The `download_deps_for_linux.sh` script can be used to download Python packages on a machine with internet access for offline transfer to a Linux environment.
-    -   All necessary base dependencies for core agents and tools (like `duckduckgo-search`, `psutil`) are included in these setup scripts.
-
--   **Execution:**
-    1.  **Place LLM Models:** Ensure your GGUF model files are in the `models/` directory.
-    2.  **Configure Agents:**
-        -   Review and edit `agential_framework_env_alt/rag_config.ini` for the RAG Agent (document paths, embedding models, etc.). A default file is created if missing.
-        -   Review and edit `agential_framework_env_alt/tool_agent_config.ini` for the Tool Agent (LLM server endpoint, API keys for tools like Tavily, sandbox directory). A default is also created if missing.
-    3.  **Start `llama_server`:**
-        -   Navigate to the `llama_cpp_bin/` directory (or where your `llama_server` binary is).
-        -   Run the server, pointing it to your chosen model. Example: `./llama_server -m ../models/your_model.gguf -c 2048 --host 0.0.0.0 --port 8080`. Adjust parameters as needed.
-    4.  **Run Agents:**
-        -   Activate the Python virtual environment: `source agential_framework_env_alt/venv/bin/activate`.
-        -   **RAG Agent:** Navigate to `agential_framework_env_alt/` and run `python rag_agent.py`. The first run might involve building the document database.
-        -   **Tool Agent:** Navigate to `agential_framework_env_alt/` and run `python tool_agent.py`. It will list loaded tools on startup.
-    5.  **(Optional) Use `text-generation-webui`:** If installed on Ubuntu, run its `start_linux.sh` script.
-
-## Extensibility
-
-Agential Firework is designed with extensibility in mind, particularly concerning the capabilities of the Tool Agent.
-
--   **Adding New Tools:** The primary way to extend the framework is by creating new tools for the `tool_agent.py`.
-    -   New tool classes should be created within the `agential_framework_env_alt/tools/` directory.
-    -   Each tool should ideally inherit from the `BaseTool` class (if one exists, or follow a similar structural pattern).
-    -   The tool needs to implement specific methods for its operation (e.g., an `execute` method).
-    -   The `tool_agent.py` is designed to automatically discover and load tools placed in the `tools/` directory, making integration straightforward.
-    -   Ensure any new dependencies for tools are managed, potentially by updating setup scripts or requirements files.
-
--   **Modifying Agents:** The RAG and Tool agents themselves can be modified or extended. Their modular design, especially the separation of core logic (like `RAGSystem`), facilitates enhancements or alterations to their behavior.
-
--   **Integrating Different LLMs/Backends:** While currently focused on `llama.cpp`, the agent configurations could be adapted to point to different LLM serving backends or APIs with modifications to the communication logic within the agents.
-
-## Conclusion
-
-Agential Firework provides a comprehensive platform for developing and experimenting with local LLMs and AI agents. Its focus on privacy, local execution, and extensibility makes it a valuable asset for AI practitioners and researchers seeking to build custom AI-powered applications. This directive outlines its current state and capabilities, serving as a guide for users and developers.
+### F. Autonomy Protocol
+- **Role:** You are to act as a senior-level Python developer and AI systems architect.
+- **Proactivity:** Proceed through the "Next Steps" tasks autonomously. When a task like "Develop a suite of `pytest` unit tests" is given, execute all logical sub-steps (creating test files, writing tests for each tool, providing run commands) without further prompting.
+- **Library/Tool Selection:** When a new library is needed (e.g., for the configuration TUI), research open-source options (like `rich` or `questionary`), select the best fit based on documentation and ease of use, state your choice, and proceed.
+- **Error Handling:** If code you generate fails, autonomously attempt to debug it up to two times. If still unresolved, present the original code, the error, all attempted fixes, and your analysis of the root cause, along with at least two paths forward.
+- **Ambiguity Resolution:** If a requirement is ambiguous (e.g., the exact format for the User Guide), create a logical and professional-looking structure, state your choice, and proceed. Flag the choice for my later review.
+- **End-of-Response Summary:** Conclude every major response with a status update: `[Task XYZ Complete]`, `[Blocked, Awaiting Input]`, or `[Ready for Next Phase]`.

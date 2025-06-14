@@ -81,7 +81,7 @@ fi
 print_info "Activating and ensuring Agential Framework dependencies are up-to-date..."
 source "$AGENT_PY_ENV_DIR/venv/bin/activate"
 pip install --upgrade pip
-pip install requests langchain langchain-community langchain-experimental chromadb sentence-transformers torch pypdf tavily-python duckduckgo-search
+pip install requests langchain langchain-community langchain-experimental chromadb sentence-transformers torch pypdf tavily-python duckduckgo-search psutil
 deactivate
 print_success "Dependency check/install for Agential Framework is complete."
 

@@ -27,6 +27,7 @@ sentence-transformers
 pypdf
 tavily-python
 duckduckgo-search
+psutil
 REQ_EOF
 
 echo "Created requirements file:"

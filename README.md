@@ -14,7 +14,7 @@ A brief overview of the important directories:
     -   The `core_logic/` subdirectory for shared agent functionalities (e.g., `rag_core.py`).
     -   The `tools/` subdirectory for pluggable tools.
     -   The Python virtual environment (`venv/`) created by the setup scripts.
--   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`, `write_file_tool.py`, `make_directory_tool.py`, `save_content_tool.py`, `web_search_tool.py`, `query_local_docs_tool.py`, `help_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
+-   `agential_framework_env_alt/tools/`: Contains individual tool modules (e.g., `calculator_tool.py`, `get_date_tool.py`, `list_directory_tool.py`, `read_file_tool.py`, `write_file_tool.py`, `make_directory_tool.py`, `save_content_tool.py`, `web_search_tool.py`, `query_local_docs_tool.py`, `help_tool.py`, `python_interpreter_tool.py`) that can be used by `tool_agent.py`. Each tool should inherit from `BaseTool`.
 -   `llama_cpp_bin/`: Stores compiled binaries for `llama.cpp` (`llama_main`, `llama_server`). Created by setup scripts.
 -   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
 -   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
@@ -35,19 +35,6 @@ Choose the setup script appropriate for your operating system. The setup scripts
 The `rag_agent.py` script uses its dedicated configuration file named `rag_config.ini`, located in the `agential_framework_env_alt/` directory. If this file is not found when the `rag_agent.py` script is run, a default one will be created. You should review and edit this file to suit your RAG agent setup.
 
 The settings are:
-
--   `[Paths]`
-    -   `DOCUMENTS_PATH`: Absolute path to the folder containing your local documents (supports `.txt`, `.md`, and `.pdf` files) for the RAG agent. Example: `/path/to/your/documents` or `C:\Users\YourName\Documents\ResearchPapers`.
-    -   `CHROMA_DB_PATH`: Path to the Chroma vector database. If relative (e.g., `./chroma_db_local_docs`), it's relative to the `rag_agent.py` script itself.
--   `[Models]`
-    -   `EMBEDDING_MODEL`: The name of the HuggingFace sentence transformer model to use for embeddings (e.g., `all-MiniLM-L6-v2`).
-    -   `LLAMA_SERVER_API_BASE`: The base URL for the `llama.cpp` server's OpenAI-compatible API (e.g., `http://127.0.0.1:8080/v1`). This is used by the RAG agent.
-    -   `EMBEDDINGS_DEVICE`: Specifies the device for calculating embeddings (used by RAG agent). Options: `auto`, `cuda`, `cpu`.
-    -   `RAG_RETRIEVER_K`: (Optional) The number of relevant document chunks the RAG system should retrieve from the vector database for context. Defaults to `3` if not specified or invalid.
--   `[Conversation]`
-    -   `HISTORY_K`: The number of past user/AI interaction pairs to keep in conversation memory for the RAG agent (e.g., `3`).
-
-**Important**:
 (Content remains the same)
 
 ## Using the RAG Agent (`rag_agent.py`)
@@ -61,10 +48,23 @@ The settings are:
 The Tool-Using Agent (`tool_agent.py`) is an experimental agent capable of utilizing a collection of "tools" to answer questions or perform tasks that go beyond the direct knowledge of the LLM.
 
 ### Overview
-(Content remains the same)
+
+This agent works by:
+1.  Receiving a query from the user.
+2.  Consulting an LLM, providing it with the user's query, conversation history, and a list of available tools.
+3.  The LLM then decides if a tool is appropriate.
+    - If so, it specifies which tool to use and the input (parameters) for that tool. It can also plan a sequence of up to two tools.
+    - If not, the LLM provides a direct answer.
+4.  If a tool (or a sequence of tools) is chosen, the agent executes it/them.
+5.  For single tool usage, or after the final tool in a sequence, the output from the last tool is passed back to the LLM (along with the original query and history).
+6.  The LLM synthesizes this information into a final, natural language response for the user.
+If no tool was chosen initially, the LLM's direct answer from step 3 is provided to the user.
+
+#### Tool Error Handling
+If a tool encounters an error during its execution (e.g., invalid parameters, file not found, calculation error), it will return an error message. The Tool-Using Agent is designed to recognize these errors. Instead of trying to use the error message as a successful result, the agent will inform the LLM that the tool operation failed (by passing a "Tool Status: error" and the error message). The LLM will then attempt to explain this error to you in a user-friendly way and may suggest alternative actions. This makes the agent more robust and transparent when tools don't perform as expected.
 
 #### Sequential Tool Execution (Chaining)
-(Content remains the same)
+The agent can execute a sequence of up to two tools to fulfill more complex requests. The LLM can plan this sequence. For instance, it might decide to first use one tool (e.g., `WebSearchTool`) and then use its output as input for a second tool (e.g., `SaveContentTool`). When planning a two-step sequence, the LLM can use the placeholder `{{PREVIOUS_TOOL_OUTPUT}}` in the parameters for the second tool, which the agent will replace with the actual output from the first tool. The `{{PREVIOUS_TOOL_OUTPUT}}` placeholder is replaced with the literal string output of the first tool. If this output is multi-line or contains special characters, the LLM should be mindful of this when constructing the parameters for the second tool to ensure correct parsing by that tool.
 
 ### Configuration (`tool_agent_config.ini`)
 (Content remains the same)
@@ -88,6 +88,12 @@ Currently implemented tools:
     -   Input: Can be a specific tool name (e.g., "CalculatorTool") to get detailed help for that tool.
     -   Input: If left empty or if "all" or "list" is provided, it lists all available tools and their brief descriptions.
     This tool helps in understanding what other tools can do.
+-   **`PythonInterpreterTool`**: (Experimental & Restricted) Executes a provided snippet of Python code in a highly restricted environment.
+    -   **Input**: A short string of Python code.
+    -   **Purpose**: Intended for simple calculations, list/dictionary manipulations, or basic logic that is too complex for other tools.
+    -   **Restrictions**: CANNOT perform file system operations, network requests, or import most libraries (only `math` and `random` are available alongside very limited built-ins). Execution is time-limited (e.g., a few seconds).
+    -   **Output**: The captured standard output (stdout) of the code or an error message.
+    -   **WARNING**: This tool is powerful and, despite restrictions, should be used with caution. It's designed for LLM-generated code snippets for benign tasks. Avoid enabling or using this tool if you have concerns about code execution risks.
 
 The agent will list all successfully loaded tools upon startup.
 *Note: Some tools like `WebSearchTool` require an active internet connection to function. The `QueryLocalDocsTool` requires the RAG database to be built by `rag_agent.py` first.*

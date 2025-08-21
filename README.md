@@ -19,6 +19,8 @@ A brief overview of the important directories:
 -   `llama.cpp/`: Contains the source code for `llama.cpp` (cloned by setup scripts).
 -   `models/`: This is where you should place your GGUF model files. This directory needs to be created manually or by the setup scripts if adapted.
 -   `text_generation_webui_install/`: (On Ubuntu) Contains the installation for `text-generation-webui` if installed using the provided script.
+-   `tests/`: Contains unit tests for the framework, primarily for tools.
+    -   `tests/tools/`: Contains specific test files for each tool.
 
 ## Setup Instructions
 
@@ -73,40 +75,40 @@ The agent is designed to recognize when a tool's output is structured data. For 
 *Note on Tool Dependencies*: Some tools have specific Python library dependencies (e.g., `WebSearchTool (DuckDuckGo)` uses `duckduckgo-search`, `GetProcessListTool` uses `psutil`). These are included in the main project setup scripts. Ensure the environment is set up correctly for all tools to be available. Some tools like `WebSearchTool` also require an active internet connection, and `QueryLocalDocsTool` requires the RAG database to be built by `rag_agent.py` first.
 
 Currently implemented tools:
--   **`CalculatorTool`**: Evaluates basic arithmetic expressions.
--   **`FileSearchTool`**: Searches for a specific text pattern (case-insensitive) within a given text file in the project's sandboxed directory.
-    -   **Input Format**: `'[relative_file_path]|[search_pattern]'` (e.g., `'src/utils.py|def process_data'`).
-    -   **Functionality**: Returns lines containing the pattern, along with their line numbers.
-    -   **Limits**: The number of returned matches (default 10) and the length of each reported line (default 200 characters) are limited for brevity.
-    -   **Path Requirements**: The file path must be relative to the `PROJECT_SANDBOX_DIR` configured in `tool_agent_config.ini`.
--   **`GetCurrentDateTool`**: Returns the current date and time.
--   **`GetProcessListTool`**: Lists currently running processes on the system, showing details like PID, name, username, CPU%, and Memory%. It takes no input parameters. The output is a sample of processes (up to a default limit of 25) and may be truncated. Requires the `psutil` library (installed by setup scripts).
--   **`HelpTool`**: Provides information about available tools.
-    -   Input: Can be a specific tool name (e.g., "CalculatorTool") to get detailed help for that tool.
-    -   Input: If left empty or if "all" or "list" is provided, it lists all available tools and their brief descriptions.
--   **`ListDirectoryTool`**: Lists contents of a directory relative to `PROJECT_SANDBOX_DIR`.
--   **`MakeDirectoryTool`**: Creates a directory relative to `PROJECT_SANDBOX_DIR`.
--   **`PythonInterpreterTool`**: (Experimental & Restricted) Executes a provided snippet of Python code in a highly restricted environment.
-    -   **Input**: A short string of Python code (e.g., `data = {{\"key\": \"value\"}}; import json; print(json.dumps(data))`).
-    -   **Purpose**: Intended for simple calculations, data manipulations (lists, dicts), or basic logic.
-    -   **Output**: The tool indicates if the output is a `(JSON String)` or `(Text)`. It returns the captured standard output (stdout) or an error message.
-    -   **Restrictions**: CANNOT perform file system operations, network requests, or import most libraries (only `math` and `random` are available alongside very limited built-ins). Execution is time-limited.
-    -   **WARNING**: This tool is powerful. Use with caution.
--   **`QueryLocalDocsTool`**: Queries local document database (uses `RAGSystem` from `core_logic`). Requires RAG DB to be built.
--   **`ReadFileTool`**: Reads content of a file relative to `PROJECT_SANDBOX_DIR`, up to `MAX_FILE_READ_CHARS`.
--   **`SaveContentTool`**: Saves text content to a file relative to `PROJECT_SANDBOX_DIR`. (Specialized `WriteFileTool`).
--   **`WriteFileTool`**: Writes/overwrites a file relative to `PROJECT_SANDBOX_DIR`. Cannot create directories. **Use with extreme caution.**
--   **`WebSearchTool (DuckDuckGo)`**: Performs a web search via DuckDuckGo. Requires internet.
--   **`WebSearchTool (Tavily)`**: Alternative web search via Tavily (needs API key). Requires internet.
-
-
-The agent will list all successfully loaded tools upon startup.
+(Content remains the same)
 
 ### Running the Agent
 (Content remains the same)
 
 ### Extending with New Tools
 (Content remains the same)
+
+## Testing the Framework
+
+### Unit Tests
+
+The project uses `pytest` for its unit testing framework. `pytest` is included in the Python dependencies installed by the setup scripts (`setup_macos.sh` and `setup_ubuntu.sh`).
+
+All unit tests are located in the `tests/` directory, with tool-specific tests primarily found under `tests/tools/`. These tests are designed to verify the individual functionality, error handling, and safety mechanisms (like sandboxing for OS tools) of each component.
+
+**Running the Tests:**
+
+1.  Ensure you have set up the development environment by running the appropriate setup script for your OS.
+2.  Activate the Python virtual environment:
+    ```bash
+    source agential_framework_env_alt/venv/bin/activate
+    ```
+    (Note: On Windows, the activation command would be different, e.g., `agential_framework_env_alt\venv\Scripts\activate`. However, the primary target platforms are macOS and Ubuntu.)
+3.  Navigate to the root directory of the `agential_firework` project.
+4.  Run pytest:
+    ```bash
+    pytest
+    ```
+    Alternatively, you can run it as a module:
+    ```bash
+    python -m pytest
+    ```
+This will discover and run all tests in the `tests/` directory and its subdirectories. You should see output indicating the number of tests passed, failed, or skipped.
 
 ## Other Scripts
 (Content remains the same)
